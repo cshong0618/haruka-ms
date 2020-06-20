@@ -1,0 +1,54 @@
+version: '3'
+services:
+  user-db:
+    image: 'mongo'
+    container_name: 'user-mongo-db'
+    environment:
+      - MONGO_INITDB_DATABASE=user
+    ports:
+      - '27017-27019:27017-27019'
+  user-api-web:
+    build: ./user
+    container_name: 'user-rest-api'
+    environment:
+      - MONGO_URL=mongodb://user-db:27017
+      - PORT=5500
+    links:
+      - user-db
+    depends_on:
+      - user-db
+    ports:
+      - '5500:5500'
+  haruka-nats:
+    image: nats
+    ports:
+      - '8222:8222'
+      - '4222:4222'
+    hostname: nats-server
+  user-api-nats:
+    build:
+      context: user
+      dockerfile: nats.Dockerfile
+    container_name: 'user-nats-api'
+    environment:
+      - MONGO_URL=mongodb://user-db:27017
+      - NATS_URI=http://haruka-nats:4222
+      - PORT=5501
+    ports:
+      - '5501:5501'
+    depends_on:
+      - user-db
+      - haruka-nats
+  haruka-gateway:
+    build:
+      context: gateway
+      dockerfile: Dockerfile
+    container_name: 'haruka-gateway'
+    environment:
+      - NATS_URL=http://haruka-nats:4222
+      - PORT=5502
+    ports:
+      - '5502:5502'
+    depends_on:
+      - haruka-nats
+      - user-api-nats
