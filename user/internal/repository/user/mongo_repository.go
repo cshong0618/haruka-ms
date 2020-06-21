@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	userDomain "github.com/cshong0618/haruka/user/pkg/domain/user"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"time"
@@ -50,7 +51,32 @@ func (m *MongoRepository) Create(ctx context.Context, user userDomain.User) (use
 }
 
 func (m *MongoRepository) FindById(ctx context.Context, ID string) (userDomain.User, error) {
-	panic("implement me")
+	objectID, err := primitive.ObjectIDFromHex(ID)
+	if err != nil {
+		return userDomain.User{}, err
+	}
+
+	query := bson.M{
+		"_id": objectID,
+	}
+
+	result := m.mongoCollection.FindOne(ctx, query)
+	if err := result.Err(); err != nil {
+		return userDomain.User{}, err
+	}
+
+	var dbUser DBUser
+	err = result.Decode(&dbUser)
+	if err := result.Err(); err != nil {
+		return userDomain.User{}, err
+	}
+
+	domainUser := userDomain.User{
+		ID:   dbUser.ID.Hex(),
+		Name: dbUser.Name,
+	}
+
+	return domainUser, nil
 }
 
 func (m *MongoRepository) FindAll(ctx context.Context) ([]userDomain.User, error) {

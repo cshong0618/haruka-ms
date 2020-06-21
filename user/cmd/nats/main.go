@@ -39,7 +39,8 @@ func main() {
 	userService := wire.InitUserService()
 
 	userSubscriber := subscriber.NewUserSubscriber(userService)
-	nc.Subscribe("user.create", userSubscriber.CreateUser)
+	nc.QueueSubscribe("user.create", "userapi", userSubscriber.CreateUser)
+	nc.QueueSubscribe("user.get", "userapi", userSubscriber.GetUser)
 
 	http.HandleFunc("/health", health)
 	if err := http.ListenAndServe(":" + port, nil); err != nil {

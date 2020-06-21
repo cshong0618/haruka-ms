@@ -15,3 +15,12 @@ type CreateUserOutput struct {
 	User
 	Error *internal.Error `json:"error"`
 }
+
+type GetUserInput struct {
+	ID string `json:"id"'`
+}
+
+type GetUserOutput struct {
+	User
+	Error *internal.Error `json:"error"`
+}

@@ -21,13 +21,13 @@ func (handler *UserHandler) CreateUser(c echo.Context) error {
 	var input CreateUserInput
 	if err := c.Bind(&input); err != nil {
 		response := internal.NewErrorResponse(err)
-		err = c.JSON(500, response)
+		err = c.JSON(400, response)
 		return err
 	}
 
 	bs, _ := json.Marshal(input)
 	msg, err := handler.nc.Request("user.create", bs, 5 * time.Second)
-
+	
 	if err != nil {
 		response := internal.NewErrorResponse(err)
 		err = c.JSON(500, response)
@@ -35,7 +35,12 @@ func (handler *UserHandler) CreateUser(c echo.Context) error {
 	}
 
 	var output CreateUserOutput
-	json.Unmarshal(msg.Data, &output)
+	err = json.Unmarshal(msg.Data, &output)
+	if err != nil {
+		response := internal.NewErrorResponse(err)
+		err = c.JSON(500, response)
+		return err
+	}
 
 	if output.Error != nil {
 		response := internal.NewErrorResponse(errors.New(output.Error.Reason))
@@ -47,6 +52,47 @@ func (handler *UserHandler) CreateUser(c echo.Context) error {
 		ID:   output.ID,
 		Name: output.Name,
 	}
+	response := internal.NewResponse(user)
+	err = c.JSON(200, response)
+	return err
+}
+
+func (handler *UserHandler) FindUser(c echo.Context) error {
+	userID := c.Param("id")
+	if userID == "" {
+		response := internal.NewResponse(errors.New("no userId provided"))
+		err := c.JSON(400, response)
+		return err
+	}
+
+	input := GetUserInput{ID: userID}
+	bs, _ := json.Marshal(input)
+	msg, err := handler.nc.Request("user.get", bs, 5 * time.Second)
+	if err != nil {
+		response := internal.NewErrorResponse(err)
+		err = c.JSON(500, response)
+		return err
+	}
+
+	var output GetUserOutput
+	err = json.Unmarshal(msg.Data, &output)
+	if err != nil {
+		response := internal.NewErrorResponse(err)
+		err = c.JSON(500, response)
+		return err
+	}
+
+	if output.Error != nil {
+		response := internal.NewErrorResponse(errors.New(output.Error.Reason))
+		err = c.JSON(500, response)
+		return err
+	}
+
+	user := User{
+		ID:   output.ID,
+		Name: output.Name,
+	}
+
 	response := internal.NewResponse(user)
 	err = c.JSON(200, response)
 	return err

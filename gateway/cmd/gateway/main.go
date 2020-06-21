@@ -41,6 +41,7 @@ func main() {
 	userHandler := user.NewUserHandler(nc)
 
 	e.POST("/user", userHandler.CreateUser)
+	e.GET("/user/:id", userHandler.FindUser)
 
 	err = e.Start(":" + port)
 	if err != nil {
