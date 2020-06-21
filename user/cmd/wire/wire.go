@@ -5,8 +5,8 @@ package wire
 import (
 	mongo2 "github.com/cshong0618/haruka/user/internal/repository/mongo"
 	"github.com/cshong0618/haruka/user/internal/repository/user"
-	"github.com/cshong0618/haruka/user/pkg/domain/usecase"
 	userDomain "github.com/cshong0618/haruka/user/pkg/domain/user"
+	"github.com/cshong0618/haruka/user/pkg/usecase"
 	"github.com/google/wire"
 	"go.mongodb.org/mongo-driver/mongo"
 	"os"

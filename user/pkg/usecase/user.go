@@ -22,7 +22,8 @@ func (service *UserService) CreateUser(
 	}).Info("create user")
 
 	newUser := user.User{
-		Name: name,
+		Name:       name,
+		UserStatus: user.Pending,
 	}
 
 	newUser, err := service.userRepository.Create(ctx, newUser)
@@ -41,6 +42,36 @@ func (service *UserService) FindUserById(
 	}).Info("find user by id")
 
 	targetUser, err := service.userRepository.FindById(ctx, ID)
+	if err != nil {
+		return user.User{}, err
+	}
+
+	return targetUser, nil
+}
+
+func (service *UserService) ActivateUser(
+	ctx context.Context,
+	ID string) (user.User, error) {
+	log.WithFields(log.Fields{
+		"id": ID,
+	}).Info("activate user")
+
+	targetUser, err := service.userRepository.UpdateStatus(ctx, ID, user.Active)
+	if err != nil {
+		return user.User{}, err
+	}
+
+	return targetUser, nil
+}
+
+func (service *UserService) DeactivateUser(
+	ctx context.Context,
+	ID string) (user.User, error) {
+	log.WithFields(log.Fields{
+		"id": ID,
+	}).Info("deactivate user")
+
+	targetUser, err := service.userRepository.UpdateStatus(ctx, ID, user.Deactivated)
 	if err != nil {
 		return user.User{}, err
 	}

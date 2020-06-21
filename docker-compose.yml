@@ -1,5 +1,15 @@
-version: '3'
+version: '3.5'
 services:
+  haruka-nats:
+    image: nats
+    ports:
+      - '8222:8222'
+      - '4222:4222'
+    hostname: nats-server
+    networks:
+      - nats
+
+  ###: USER
   user-db:
     image: 'mongo'
     container_name: 'user-mongo-db'
@@ -7,24 +17,8 @@ services:
       - MONGO_INITDB_DATABASE=user
     ports:
       - '27017-27019:27017-27019'
-  user-api-web:
-    build: ./user
-    container_name: 'user-rest-api'
-    environment:
-      - MONGO_URL=mongodb://user-db:27017
-      - PORT=5500
-    links:
-      - user-db
-    depends_on:
-      - user-db
-    ports:
-      - '5500:5500'
-  haruka-nats:
-    image: nats
-    ports:
-      - '8222:8222'
-      - '4222:4222'
-    hostname: nats-server
+    networks:
+      - user
   user-api-nats:
     build:
       context: user
@@ -39,6 +33,49 @@ services:
     depends_on:
       - user-db
       - haruka-nats
+    networks:
+      - user
+      - nats
+
+  ### AUTH
+  auth-db:
+    image: 'mongo'
+    container_name: 'auth-mongo-db'
+    environment:
+      - MONGO_INITDB_DATABASE=auth
+    ports:
+      - '27027-27029:27017-27019'
+    networks:
+      - auth
+  auth-redis:
+    image: 'redis'
+    container_name: 'auth-redis-db'
+    ports:
+      - '6379:6379'
+    networks:
+      - auth
+  auth-api-nats:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: 'auth-nats-api'
+    environment:
+      - MONGO_URL=mongodb://auth-db:27017
+      - REDIS_URL=redis://auth-redis:6379
+      - NATS_URI=http://haruka-nats:4222
+      - PORT=5503
+    ports:
+      - '5503:5503'
+    depends_on:
+      - auth-redis
+      - auth-db
+      - haruka-nats
+    networks:
+      - auth
+      - nats
+
+
+  ### GATEWAY
   haruka-gateway:
     build:
       context: gateway
@@ -52,3 +89,14 @@ services:
     depends_on:
       - haruka-nats
       - user-api-nats
+      - auth-api-nats
+    networks:
+      - frontend
+      - nats
+networks:
+  frontend:
+  nats:
+  user:
+    name: user-network
+  auth:
+    name: auth-network

@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/cshong0618/haruka/user/pkg/domain/usecase"
+	"github.com/cshong0618/haruka/user/pkg/usecase"
 	"github.com/labstack/echo/v4"
 )
 

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type UserHandler struct{
+type UserHandler struct {
 	nc *nats.Conn
 }
 
@@ -26,8 +26,8 @@ func (handler *UserHandler) CreateUser(c echo.Context) error {
 	}
 
 	bs, _ := json.Marshal(input)
-	msg, err := handler.nc.Request("user.create", bs, 5 * time.Second)
-	
+	msg, err := handler.nc.Request("user.create", bs, 5*time.Second)
+
 	if err != nil {
 		response := internal.NewErrorResponse(err)
 		err = c.JSON(500, response)
@@ -48,9 +48,20 @@ func (handler *UserHandler) CreateUser(c echo.Context) error {
 		return err
 	}
 
+	// fire create auth here
+	createAuthMessage := CreateAuthMessage{
+		UserID:   output.ID,
+		Handler:  input.Handler,
+		Password: input.Password,
+	}
+
+	createAuthMessageBs, _ := json.Marshal(createAuthMessage)
+	handler.nc.Publish("auth.create", createAuthMessageBs)
+
 	user := User{
-		ID:   output.ID,
-		Name: output.Name,
+		ID:     output.ID,
+		Name:   output.Name,
+		Status: output.Status,
 	}
 	response := internal.NewResponse(user)
 	err = c.JSON(200, response)
@@ -67,7 +78,7 @@ func (handler *UserHandler) FindUser(c echo.Context) error {
 
 	input := GetUserInput{ID: userID}
 	bs, _ := json.Marshal(input)
-	msg, err := handler.nc.Request("user.get", bs, 5 * time.Second)
+	msg, err := handler.nc.Request("user.get", bs, 5*time.Second)
 	if err != nil {
 		response := internal.NewErrorResponse(err)
 		err = c.JSON(500, response)
@@ -89,8 +100,9 @@ func (handler *UserHandler) FindUser(c echo.Context) error {
 	}
 
 	user := User{
-		ID:   output.ID,
-		Name: output.Name,
+		ID:     output.ID,
+		Name:   output.Name,
+		Status: output.Status,
 	}
 
 	response := internal.NewResponse(user)

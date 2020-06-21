@@ -34,12 +34,9 @@ func NewMongoRepository(
 
 func (m *MongoRepository) Create(ctx context.Context, user userDomain.User) (userDomain.User, error) {
 	now := time.Now()
-	dbUser := DBUser{
-		ID:        primitive.NewObjectID(),
-		Name:      user.Name,
-		CreatedOn: now,
-		UpdatedOn: now,
-	}
+	dbUser := toDBUser(user)
+	dbUser.CreatedOn = now
+	dbUser.UpdatedOn = now
 
 	result, err := m.mongoCollection.InsertOne(ctx, dbUser)
 	if err != nil {
@@ -48,6 +45,41 @@ func (m *MongoRepository) Create(ctx context.Context, user userDomain.User) (use
 
 	user.ID = result.InsertedID.(primitive.ObjectID).Hex()
 	return user, nil
+}
+
+func (m *MongoRepository) UpdateStatus(ctx context.Context, ID string, status userDomain.Status) (userDomain.User, error) {
+	now := time.Now()
+	objectID, err := primitive.ObjectIDFromHex(ID)
+	if err != nil {
+		return userDomain.User{}, err
+	}
+
+	findQuery := bson.M{
+		"_id": objectID,
+	}
+	updateQuery := bson.M{
+		"$set": bson.M{
+			"status":    string(status),
+			"updatedOn": now,
+		},
+	}
+
+	result := m.mongoCollection.FindOneAndUpdate(ctx, findQuery, updateQuery)
+	if err := result.Err(); err != nil {
+		return userDomain.User{}, err
+	}
+
+	var dbUser DBUser
+	err = result.Decode(&dbUser)
+	if err != nil {
+		return userDomain.User{}, err
+	}
+
+	user := toDomainUser(dbUser)
+
+	return user, nil
+
+	panic("implement me")
 }
 
 func (m *MongoRepository) FindById(ctx context.Context, ID string) (userDomain.User, error) {
@@ -71,10 +103,7 @@ func (m *MongoRepository) FindById(ctx context.Context, ID string) (userDomain.U
 		return userDomain.User{}, err
 	}
 
-	domainUser := userDomain.User{
-		ID:   dbUser.ID.Hex(),
-		Name: dbUser.Name,
-	}
+	domainUser := toDomainUser(dbUser)
 
 	return domainUser, nil
 }
@@ -86,6 +115,30 @@ func (m *MongoRepository) FindAll(ctx context.Context) ([]userDomain.User, error
 type DBUser struct {
 	ID        primitive.ObjectID `bson:"_id"`
 	Name      string             `bson:"name"`
+	Status    string             `bson:"status"`
 	CreatedOn time.Time          `bson:"createdOn"`
 	UpdatedOn time.Time          `bson:"updatedOn"`
+}
+
+func toDBUser(user userDomain.User) DBUser {
+	var ID primitive.ObjectID
+	if user.ID == "" {
+		ID = primitive.NewObjectID()
+	} else {
+		ID, _ = primitive.ObjectIDFromHex(user.ID)
+	}
+
+	return DBUser{
+		ID:     ID,
+		Name:   user.Name,
+		Status: string(user.UserStatus),
+	}
+}
+
+func toDomainUser(dbUser DBUser) userDomain.User {
+	return userDomain.User{
+		ID:         dbUser.ID.Hex(),
+		Name:       dbUser.Name,
+		UserStatus: userDomain.Status(dbUser.Status),
+	}
 }

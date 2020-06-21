@@ -41,6 +41,9 @@ func main() {
 	userSubscriber := subscriber.NewUserSubscriber(userService)
 	nc.QueueSubscribe("user.create", "userapi", userSubscriber.CreateUser)
 	nc.QueueSubscribe("user.get", "userapi", userSubscriber.GetUser)
+	nc.QueueSubscribe("user.activate", "userapi", userSubscriber.ActivateUser)
+	nc.QueueSubscribe("auth.creation.success", "userapi", userSubscriber.ActivateUser)
+	nc.QueueSubscribe("auth.creation.failed", "userapi", userSubscriber.DeactivateUser)
 
 	http.HandleFunc("/health", health)
 	if err := http.ListenAndServe(":" + port, nil); err != nil {
