@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/cshong0618/haruka/gateway/internal/post"
 	"github.com/cshong0618/haruka/gateway/internal/user"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -39,9 +40,12 @@ func main() {
 	e.Use(middleware.Recover())
 
 	userHandler := user.NewUserHandler(nc)
-
 	e.POST("/user", userHandler.CreateUser)
 	e.GET("/user/:id", userHandler.FindUser)
+
+	postHandler := post.NewPostHandler(nc)
+	e.POST("/post", postHandler.CreatePost)
+	e.PUT("/post/:postId", postHandler.UpdatePost)
 
 	err = e.Start(":" + port)
 	if err != nil {

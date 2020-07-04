@@ -74,6 +74,33 @@ services:
       - auth
       - nats
 
+  ### POST
+  post-db:
+    image: 'mongo'
+    container_name: 'post-mongo-db'
+    environment:
+      - MONGO_INITDB_DATABASE=post
+    ports:
+      - '27037-27039:27017-27019'
+    networks:
+      - post
+  post-api-nats:
+    build:
+      context: post
+      dockerfile: command.Dockerfile
+    container_name: 'post-command-api'
+    environment:
+      - MONGO_URL=mongodb://post-db:27017
+      - NATS_URI=http://haruka-nats:4222
+      - PORT=5504
+    ports:
+      - '5504:5504'
+    depends_on:
+      - post-db
+      - haruka-nats
+    networks:
+      - post
+      - nats
 
   ### GATEWAY
   haruka-gateway:
@@ -100,3 +127,5 @@ networks:
     name: user-network
   auth:
     name: auth-network
+  post:
+    name: post-network
